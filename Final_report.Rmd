@@ -1,0 +1,919 @@
+---
+title: __Comparison of Top Data Mining Algorithms__
+author: "Jimmy Sanghun Kim"
+date: "December 12, 2016"
+output:
+  pdf_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+fontsize: 12pt
+---
+
+\newpage
+
+# Introduction
+In recent past, data mining has become one of the fastest growing and essential professional field as there has been tremendous amount of data that needs to be processed and analyzed in effective ways to make meaningful decisions. 
+Algorithms varies in accuracy based on the domains, shape, labels of data and etc. Thus the goal of our research is to investigate how top data mining algorithms such as K-Nearest Neighbor, Decision Tree, Expectation Maximization and K-means perform in different datasets using R.
+
+# Acknowledgement
+First and foremost, I would like to thank my mentor Hasan Kurban, Ph D. candidate in the School of Informatics and Computing at Indiana University Bloomington. My first contact with Hasan was through Undergraduate Research Opportunities in Computing(UROC) at Indiana University. Since then, he, as a mentor, provided me with valuable guidance, strong support and encouraged me throughout the entire program. In addition, I would like to thank Lamara D.Warren, Interim Assistant Dean for Diversity and Education at School of Informatics and Computing for giving me opportunity in UROC and have great experience
+
+# Experimental Procedure
+The datasets chosen for the analysis has been downloaded from UCI Machine Learning Repository and also provided by mentor. The datasets descriptions are available in next section and they are:
+
+* Wine Quality(White)
+* Magic Gamma Telescope
+* Spambase
+
+For each dataset, two classification and two clustering algorithms will be applied to observe performances of each algorithm on different datasets. Those algorithms are:
+
+* Classification
+    + K-Nearest Neighbor(KNN)
+    + Decision Tree
+* Clustering
+    + Expectation Maximization
+    + K-Means
+
+\begin{center}
+```{r, echo=FALSE, out.height="250px", out.width="600px"}
+knitr:: include_graphics("procedure.png")
+```
+
+Figure 1. Procedure
+\end{center}
+
+## Dataset Descriptions
+In data mining, understanding domain of dataset is crucial in order to obtain specific information we look for in the data. Each dataset has its own unique attributes, characteristics, labels and shapes such that performances of each algorithms can vary accordingly. Below table 1 summarizes the dataset we are going to use in the experiments.
+
+
+Dataset               | No.of attributes | Classes | No.of records
+----------------------|------------------|---------|--------------
+Wine Quality          | 12               | 7       | 4898
+Magic Gamma Telescope | 11               | 2       | 19021
+Spambase              | 58               | 2       | 4602
+
+### Wine Quality
+Wine quality dataset is about variants of the Portuguese "Vinho Verde"" wine. The inputs include 12 features (e.g. PH values) and 1 of them refers to the output which is based on sensory data (median of at least 3 evaluations made by wine experts). Each expert graded the wine quality between 0 (very bad) and 10 (very excellent). There are 4898 records and 7 classes without any missing values. 
+
+### Magic Gamma Telescope
+This dataset consist of 11 features and 1 of them being class attribute which is either 'g' or 'h' but for our purpose, classes have been changed into '1' or '2'. Among all datasets, Magic Gamma Telescope dataset has most observation of 19021. With similar number of attributes compared to 'Wine Quality' dataset, we can compare how classes and number of records can have effect on performance.
+
+### Spambase
+Spambase has most number of attributes which is 58 and one of them also refers to class attribute. Similarly, the class attribute consists of either '0' or '1' which denotes whether the e-mail was considered as spam or not.
+
+# Algorithms
+## Classification
+Classification, a supervised learning method is one of the most widely used data mining technique which uses labeled data. Classification predicts a certain outcome (class) based on a given input (features). In order to predict the outcome, algorithm processes a training set containing a set of attributes and the respective outcome (class) thereby understanding a relationship between features which makes possible to predict outcome when test set is given without respective outcome.
+
+### K-Nearest Neighbor(KNN)
+K-Nearest Neighbor, one of the top data mining algorithm, is a non-parametric lazy learning algorithm which means predicting an outcome of test set is heavily based on the training phase. It finds a group of _k_ data points in the training set that are closest to the test object and assigns a label based on majority of particular class in the neighborhood.
+
+Let's take a look at how KNN classification is done with Wine Quality data set.
+```{r, include=FALSE}
+# Data Mining Research
+wine_data = read.csv("winequality-white.csv", header = FALSE, sep = ";")
+# Randomly shuffle
+wine_data <- wine_data[sample(nrow(wine_data)),]
+wine_cls = wine_data[, c(12)]
+wine_data = wine_data[,c(1:11)]
+summary(wine_data)
+
+
+set.seed(777)
+# Normalizing function
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+# Normalize the data
+norm_wine = as.data.frame(lapply(wine_data[,c(1:11)], normalize))
+
+# Perform 10 fold cross validation
+# Creating 10 equal size fold
+folds <- cut(seq(1, nrow(norm_wine)), breaks=10, labels=FALSE)
+
+# Segment data by fold using the which() function
+result_wine = vector("numeric", 10)
+cumulative_misclass = vector("numeric", 6)
+
+# KNN with k=5
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  
+  test_data = norm_wine[testIndex, ]
+  training_data = norm_wine[-testIndex, ]
+  test_target = wine_cls[testIndex]
+  training_target = wine_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=5)
+  result_wine[i] = mean(test_target != pred)
+}
+cumulative_misclass[1] = mean(result_wine)
+
+
+# KNN with k=9
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  
+  test_data = norm_wine[testIndex, ]
+  training_data = norm_wine[-testIndex, ]
+  test_target = wine_cls[testIndex]
+  training_target = wine_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=9)
+  result_wine[i] = mean(test_target != pred)
+}
+cumulative_misclass[2] = mean(result_wine)
+
+
+# KNN with k=13
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  
+  test_data = norm_wine[testIndex, ]
+  training_data = norm_wine[-testIndex, ]
+  test_target = wine_cls[testIndex]
+  training_target = wine_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=13)
+  result_wine[i] = mean(test_target != pred)
+}
+cumulative_misclass[3] = mean(result_wine)
+
+
+# KNN with k=17
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  
+  test_data = norm_wine[testIndex, ]
+  training_data = norm_wine[-testIndex, ]
+  test_target = wine_cls[testIndex]
+  training_target = wine_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=17)
+  result_wine[i] = mean(test_target != pred)
+}
+cumulative_misclass[4] = mean(result_wine)
+
+
+# KNN with k=21
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  
+  test_data = norm_wine[testIndex, ]
+  training_data = norm_wine[-testIndex, ]
+  test_target = wine_cls[testIndex]
+  training_target = wine_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=21)
+  result_wine[i] = mean(test_target != pred)
+}
+cumulative_misclass[5] = mean(result_wine)
+
+
+# KNN with k=25
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  
+  test_data = norm_wine[testIndex, ]
+  training_data = norm_wine[-testIndex, ]
+  test_target = wine_cls[testIndex]
+  training_target = wine_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=25)
+  result_wine[i] = mean(test_target != pred)
+}
+cumulative_misclass[6] = mean(result_wine)
+result_accuracy = 1 - cumulative_misclass
+result_accuracy = result_accuracy * 100
+
+num_k = vector("numeric", 6)
+num_k[1] = 5
+num_k[2] = 9
+num_k[3] = 13
+num_k[4] = 17
+num_k[5] = 21
+num_k[6] = 25
+
+
+#--------------------------------------------------------------------------------------------------------------------
+#Magic data
+magic_data = read.csv("magicNormalized.txt", header = TRUE, sep = ",")
+magic_data <- magic_data[sample(nrow(magic_data)),]
+magic_cls = magic_data[, c(11)]
+magic_data = magic_data[,c(1:10)]
+
+folds <- cut(seq(1, nrow(magic_data)), breaks=10, labels=FALSE)
+
+result_magic = vector("numeric", 10)
+cumulative_misclass = vector("numeric", 6)
+
+# KNN with k=5
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = magic_data[testIndex, ]
+  training_data = magic_data[-testIndex, ]
+  test_target = magic_cls[testIndex]
+  training_target = magic_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=5)
+  result_magic[i] = mean(test_target != pred)
+}
+cumulative_misclass[1] = mean(result_magic)
+
+# KNN with k=9
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = magic_data[testIndex, ]
+  training_data = magic_data[-testIndex, ]
+  test_target = magic_cls[testIndex]
+  training_target = magic_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=9)
+  result_magic[i] = mean(test_target != pred)
+}
+cumulative_misclass[2] = mean(result_magic)
+
+# KNN with k=13
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = magic_data[testIndex, ]
+  training_data = magic_data[-testIndex, ]
+  test_target = magic_cls[testIndex]
+  training_target = magic_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=13)
+  result_magic[i] = mean(test_target != pred)
+}
+cumulative_misclass[3] = mean(result_magic)
+
+# KNN with k=17
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = magic_data[testIndex, ]
+  training_data = magic_data[-testIndex, ]
+  test_target = magic_cls[testIndex]
+  training_target = magic_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=17)
+  result_magic[i] = mean(test_target != pred)
+}
+cumulative_misclass[4] = mean(result_magic)
+
+# KNN with k=21
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = magic_data[testIndex, ]
+  training_data = magic_data[-testIndex, ]
+  test_target = magic_cls[testIndex]
+  training_target = magic_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=21)
+  result_magic[i] = mean(test_target != pred)
+}
+cumulative_misclass[5] = mean(result_magic)
+
+# KNN with k=25
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = magic_data[testIndex, ]
+  training_data = magic_data[-testIndex, ]
+  test_target = magic_cls[testIndex]
+  training_target = magic_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=25)
+  result_magic[i] = mean(test_target != pred)
+}
+cumulative_misclass[6] = mean(result_magic)
+
+result_accuracy_magic = 1 - cumulative_misclass
+result_accuracy_magic = result_accuracy_magic * 100
+
+
+#------------------------------------------------------------------------------------------------------------------
+#Spam data
+spam_data = read.csv("spamNormalized.txt", header = TRUE, sep = ",",fileEncoding = "UTF-8")
+spam_cls = spam_data[,c(58)]
+spam_data = spam_data[,c(1:57)]
+
+
+folds <- cut(seq(1, nrow(spam_data)), breaks=10, labels=FALSE)
+
+result_spam = vector("numeric", 10)
+cumulative_misclass = vector("numeric", 6)
+
+# KNN with k=5
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, ]
+  training_data = spam_data[-testIndex, ]
+  test_target = spam_cls[testIndex]
+  training_target = spam_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=5)
+  result_spam[i] = mean(test_target != pred)
+}
+cumulative_misclass[1] = mean(result_spam)
+
+# KNN with k=9
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, ]
+  training_data = spam_data[-testIndex, ]
+  test_target = spam_cls[testIndex]
+  training_target = spam_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=9)
+  result_spam[i] = mean(test_target != pred)
+}
+cumulative_misclass[2] = mean(result_spam)
+
+# KNN with k=13
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, ]
+  training_data = spam_data[-testIndex, ]
+  test_target = spam_cls[testIndex]
+  training_target = spam_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=13)
+  result_spam[i] = mean(test_target != pred)
+}
+cumulative_misclass[3] = mean(result_spam)
+
+# KNN with k=17
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, ]
+  training_data = spam_data[-testIndex, ]
+  test_target = spam_cls[testIndex]
+  training_target = spam_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=17)
+  result_spam[i] = mean(test_target != pred)
+}
+cumulative_misclass[4] = mean(result_spam)
+
+# KNN with k=21
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, ]
+  training_data = spam_data[-testIndex, ]
+  test_target = spam_cls[testIndex]
+  training_target = spam_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=21)
+  result_spam[i] = mean(test_target != pred)
+}
+cumulative_misclass[5] = mean(result_spam)
+
+# KNN with k=25
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, ]
+  training_data = spam_data[-testIndex, ]
+  test_target = spam_cls[testIndex]
+  training_target = spam_cls[-testIndex]
+  
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=25)
+  result_spam[i] = mean(test_target != pred)
+}
+cumulative_misclass[6] = mean(result_spam)
+
+result_accuracy_spam = 1 - cumulative_misclass
+result_accuracy_spam = result_accuracy_spam * 100
+
+k5 = c(result_accuracy[1],result_accuracy_magic[1],result_accuracy_spam[1])
+k9 = c(result_accuracy[2],result_accuracy_magic[2],result_accuracy_spam[2])
+k13 = c(result_accuracy[3],result_accuracy_magic[3],result_accuracy_spam[3])
+k17 = c(result_accuracy[4],result_accuracy_magic[4],result_accuracy_spam[4])
+k21 = c(result_accuracy[5],result_accuracy_magic[5],result_accuracy_spam[5])
+k25 = c(result_accuracy[6],result_accuracy_magic[6],result_accuracy_spam[6])
+
+plot_data = data.frame(k5,k9,k13,k17,k21,k25)
+```
+```{r, eval=FALSE}
+# Perform 10 fold cross validation
+folds <- cut(seq(1, nrow(norm_wine)), breaks=10, labels=FALSE)
+
+# KNN with k=5
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+
+  test_data = norm_wine[testIndex, ]
+  training_data = norm_wine[-testIndex, ]
+  test_target = wine_cls[testIndex]
+  training_target = wine_cls[-testIndex]
+  
+  # KNN takes place here!
+  require(class)
+  pred = knn(train=training_data, test=test_data, cl=training_target, k=5)
+  result_wine[i] = mean(test_target != pred)
+}
+```
+Above example takes _k_=5 and performs 10 fold cross validation to observe the accuracy of KNN classification. In each fold, dataset is divided into training and test set and KNN calculates distance of each data points in the neighborhood. Then selecting 5 nearest neighborhood data points, assigns class that is dominant to the test set label. This process will be repeated on different number of _k_ and datasets. The results are as follows:
+```{r, echo=FALSE}
+barplot(as.matrix(plot_data), main = "Accuracy of K-Nearest Neighbor with different K in each data sets", 
+        ylim = c(0,100), ylab = "Percentage", xlab = "Number of K", beside = TRUE, col = c("red","gold","green"))
+legend("topleft", c("Wine Quality", "Magic", "Spam"), cex=0.6, bty = "n", fill = c("red","gold","green"))
+```
+\begin{center}
+Figure 2.
+\end{center}
+
+
+\newpage
+### Decision Tree
+```{r, include=FALSE}
+#Decision Tree
+wine_data = read.csv("winequality-white.csv", header = FALSE, sep = ";")
+wine_data$V12 = ifelse(wine_data$V12 < 5, 0, 1)
+
+require(rpart)
+require(rpart.plot)
+
+# Cross Validation to find accuracy
+# Perform 10 fold cross validation
+# Creating 10 equal size fold
+folds <- cut(seq(1, nrow(wine_data)), breaks=10, labels=FALSE)
+
+# Segment data by fold using the which() function
+result_tree = vector("numeric", 10)
+cumulative_misclass_tree = vector("numeric", 3)
+cumulative_misclass_ptree = vector("numeric", 3)
+
+# before pruning
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = wine_data[testIndex, -c(12)]
+  training_data = wine_data[-testIndex, ]
+  test_target = wine_data[testIndex, c(12)]
+  training_target = wine_data[-testIndex, c(12)]
+  
+  dtree_model = rpart(training_data$V12~., data=training_data, method = "class")
+  dtree_pred = predict(dtree_model, test_data, type = "class")
+  result_tree[i]= mean(dtree_pred != test_target)
+}
+
+# after pruning
+result_ptree = vector("numeric", 10)
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = wine_data[testIndex, -c(12)]
+  training_data = wine_data[-testIndex, ]
+  test_target = wine_data[testIndex, c(12)]
+  training_target = wine_data[-testIndex, c(12)]
+  
+  dtree_model = rpart(training_data$V12~., data=training_data, method = "class")
+  ptree_model = prune(dtree_model, cp= dtree_model$cptable[which.min(dtree_model$cptable[,"xerror"]),"CP"])
+  ptree_pred = predict(ptree_model, test_data, type = "class")
+  
+  result_ptree[i]= mean(ptree_pred != test_target)
+}
+  cumulative_misclass_tree[1] = mean(result_tree)
+  cumulative_misclass_ptree[1] = mean(result_ptree)
+
+
+plot((1-result_tree)*100, xaxt="n",type = 'o', col = "blue", ylim = c(90,100), xlab = "Test_Set", ylab = "Percentage")
+lines((1-result_ptree)*100, type = 'o', col = "red", pch = 22)
+axis(1, at=1:10)
+title(main = "Accuracy of Decision Tree")
+legend("bottomright", c("Before Pruning", "After Pruning"), pt.cex=1.5, cex=0.75, ncol=2, col=c("blue","red"), pch=21:22, lty=1)
+
+
+#---------------------------------------------------------------------------------------------------------------------
+#Magic data
+magic_data = read.csv("magicNormalized.txt", header = TRUE, sep = ",")
+
+folds <- cut(seq(1, nrow(magic_data)), breaks=10, labels=FALSE)
+
+result_tree = vector("numeric", 10)
+
+# before pruning
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = magic_data[testIndex, -c(11)]
+  training_data = magic_data[-testIndex, ]
+  test_target = magic_data[testIndex, c(11)]
+  training_target = magic_data[-testIndex, c(11)]
+  
+  dtree_model = rpart(training_data$data...11.~., data=training_data, method = "class")
+  dtree_pred = predict(dtree_model, test_data, type = "class")
+  result_tree[i]= mean(dtree_pred != test_target)
+}
+
+# after pruning
+result_ptree = vector("numeric", 10)
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = magic_data[testIndex, -c(11)]
+  training_data = magic_data[-testIndex, ]
+  test_target = magic_data[testIndex, c(11)]
+  training_target = magic_data[-testIndex, c(11)]
+  
+  dtree_model = rpart(training_data$data...11.~., data=training_data, method = "class")
+  ptree_model = prune(dtree_model, cp= dtree_model$cptable[which.min(dtree_model$cptable[,"xerror"]),"CP"])
+  ptree_pred = predict(ptree_model, test_data, type = "class")
+  
+  result_ptree[i]= mean(ptree_pred != test_target)
+}
+  cumulative_misclass_tree[2] = mean(result_tree)
+  cumulative_misclass_ptree[2] = mean(result_ptree)
+
+  
+#--------------------------------------------------------------------------------------------------------------
+#Spam data
+spam_data = read.csv("spamNormalized.txt", header = TRUE, sep = ",",fileEncoding = "UTF-8")
+
+folds <- cut(seq(1, nrow(spam_data)), breaks=10, labels=FALSE)
+
+result_tree = vector("numeric", 10)
+
+# before pruning
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, -c(58)]
+  training_data = spam_data[-testIndex, ]
+  test_target = spam_data[testIndex, c(58)]
+  training_target = spam_data[-testIndex, c(58)]
+  
+  dtree_model = rpart(training_data$X.V58.~., data=training_data, method = "class")
+  dtree_pred = predict(dtree_model, test_data, type = "class")
+  result_tree[i]= mean(dtree_pred != test_target)
+}
+
+# after pruning
+result_ptree = vector("numeric", 10)
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, -c(58)]
+  training_data = spam_data[-testIndex, ]
+  test_target = spam_data[testIndex, c(58)]
+  training_target = spam_data[-testIndex, c(58)]
+  
+  dtree_model = rpart(training_data$X.V58.~., data=training_data, method = "class")
+  ptree_model = prune(dtree_model, cp= dtree_model$cptable[which.min(dtree_model$cptable[,"xerror"]),"CP"])
+  ptree_pred = predict(ptree_model, test_data, type = "class")
+  
+  result_ptree[i]= mean(ptree_pred != test_target)
+}
+cumulative_misclass_tree[3] = mean(result_tree)
+cumulative_misclass_ptree[3] = mean(result_ptree)
+
+
+cumulative_misclass_ptree = cumulative_misclass_ptree*100
+result_accuracy = 100 - cumulative_misclass_ptree
+Wine_Quality = c(result_accuracy[1])
+Magic = c(result_accuracy[2])
+Spam = c(result_accuracy[3])
+
+plot_data = data.frame(Wine_Quality, Magic, Spam)
+
+barplot(result_accuracy, main = "Accuracy of Decision Tree in each data sets", ylim = c(0, 100), 
+        xlab = "Data sets", ylab = "Percentages", col = rainbow(7), xlim = c(0,4),
+        names.arg = c("Wine Quality", "Magic", "Spam"))
+legend("topright", c("Wine Quality", "Magic", "Spam"), cex=0.7, bty = "n", fill = rainbow(7))
+
+```
+Decision Tree is another top 10 data mining algorithm that is widely used to builds classification or regression models in a form of a tree structure. The algorithm of decision tree uses ID3 which uses Entropy and Information Gain to construct a decision tree such that final node of each branch consists of decision node such as "yes" or "no". Similar to KNN, decision tree uses training data to build model and decide which variable to split or stop and value of the node at split. One can notice that for decision tree, attributes are usually categorical or numerical. Based on above information, model can be constructed and then applied to test datasets to measure accuracy of classification. 
+\begin{center}
+```{r, echo=FALSE, out.height="250px", out.width="600px"}
+knitr:: include_graphics("tree.png")
+```
+
+Figure 3. Tree structure of Magic Gamma Telescope
+\end{center}
+
+For our purposes, to understand better, I have made justification on Wine Quality's class attribute such that now all data sets have binary class. 
+```{r, eval=FALSE}
+# Import Wine Quality dataset
+wine_data = read.csv("winequality-white.csv", header = FALSE, sep = ";")
+
+# Modify class attribute to either '0' or '1'
+# 0 = Below Avaerage, 1 = Above Average
+wine_data$V12 = ifelse(wine_data$V12 < 5, 0, 1)
+```
+
+Again, I have conducted 10-fold cross validation on each dataset and measured the performance of pruned tree prediction of each test sets and recorded results into 'result_ptree'. For decision tree, it is important to prune the tree so that tree model is not overfitted. If tree is overfitted, it would mean that the branch has not much use in predicting class for test sets but still taking up the space which increases runtime decreasing efficiency. 
+```{r, eval=FALSE}
+result_ptree = vector("numeric", 10)
+for (i in 1:10) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, -c(58)]
+  training_data = spam_data[-testIndex, ]
+  test_target = spam_data[testIndex, c(58)]
+  training_target = spam_data[-testIndex, c(58)]
+  
+  dtree_model = rpart(training_data$X.V58.~., 
+                      data=training_data, method = "class")
+  ptree_model = prune(dtree_model, cp= dtree_model$cptable...
+                      [which.min(dtree_model$cptable[,"xerror"]),"CP"])
+  ptree_pred = predict(ptree_model, test_data, type = "class")
+  result_ptree[i]= mean(ptree_pred != test_target)
+}
+```
+```{r, echo=FALSE}
+barplot(result_accuracy, main = "Accuracy of Decision Tree in each data sets", ylim = c(0, 100), 
+        xlab = "Data sets", ylab = "Percentages", col = rainbow(7), xlim = c(0,4),
+        names.arg = c("Wine Quality", "Magic", "Spam"))
+legend("topright", c("Wine Quality", "Magic", "Spam"), cex=0.5, bty = "n", fill = rainbow(7))
+```
+\begin{center}
+Figure 4.
+\end{center}
+
+
+## Clustering
+Clustering, unsupervised learning method which groups a set of objects in a way that objects in the same group(cluster) has similar characteristics among each other than those in other groups. During clustering, data points are partitioned into set of data based on their similarity and then assign label according to the cluster they are in. This label does not necesarily corresponds to actual label, if exists, because in real world, there are a lot of data without labels and clustering is to help distinguish and discover distinct patterns out of dataset. Overall, I believe clustering is great tool to observe the behavior and characteristics of clusters in datasets.
+
+### Expectation Maximization(EM)
+Expectation Maximization(EM) is parametric and iterative method for finding maximum liklihood of parameters. EM algorithm requires a probability distribution. In this research, I have used R package called 'Mclust' which builds cluster model for parameterized Gaussian mixture models. There are two steps in EM algorithm which is E-step and M-step. In E-step, also known as expectation step, creates function for the expectation of the log-likelihood calcualted from the current estimate for the parameters. For M-step, it computes parameters maximizing the expected log-liklihood found in E-step.
+```{r, include=FALSE}
+#EM Clustering
+wine_data = read.csv("winequality-white.csv", header = FALSE, sep = ";")
+
+#Randomly shuffle
+wine_data <- wine_data[sample(nrow(wine_data)),]
+wine_cls = wine_data[, c(12)]
+wine_data = wine_data[,c(1:11)]
+
+# Normalizing function
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+wine_data = as.data.frame(lapply(wine_data[,c(1:11)], normalize))
+summary(wine_data)
+
+require(mclust)
+#Clustering
+table(wine_cls)
+mod = Mclust(wine_data, G=7)
+summary(mod)
+
+result_pred = vector("numeric", 3)
+
+em_pred = predict.Mclust(mod, wine_data)
+result_pred[1]= mean(em_pred$classification != mod$classification)
+
+table(mod$classification)
+table(em_pred$classification)
+
+folds <- cut(seq(1, nrow(wine_data)), breaks=2, labels=FALSE)
+result_wine = vector("numeric", 2)
+for (i in 1:2) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = wine_data[testIndex, ]
+  training_data = wine_data[-testIndex, ]
+  
+  mod = Mclust(training_data, G= 7)
+  em_pred = predict.Mclust(mod, test_data)
+  print(table(mod$classification))
+  print(table(em_pred$classification))
+  result_wine[i] = mean(em_pred$classification != mod$classification)
+}
+result_pred[1] = mean(result_wine)
+table(em_pred$classification, mod$classification)
+table(em_pred$classification)-table(mod$classification)
+
+
+#Magic data
+magic_data = read.csv("magicNormalized.txt", header = TRUE, sep = ",")
+
+magic_cls = magic_data[, c(11)]
+magic_data = magic_data[,c(1:10)]
+
+folds <- cut(seq(1, nrow(magic_data)), breaks=2, labels=FALSE)
+result_magic = vector("numeric", 2)
+for (i in 1:2) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = magic_data[testIndex, ]
+  training_data = magic_data[-testIndex, ]
+  
+  mod_magic = Mclust(training_data, G=2)
+  em_pred = predict.Mclust(mod_magic, test_data)
+  print(table(mod_magic$classification))
+  print(table(em_pred$classification))
+  result_magic[i] = mean(em_pred$classification != mod_magic$classification)
+}
+result_pred[2] = mean(result_magic)
+
+
+#Spam data
+spam_data = read.csv("spamNormalized.txt", header = TRUE, sep = ",",fileEncoding = "UTF-8")
+spam_cls = spam_data[,c(58)]
+spam_data = spam_data[,c(1:57)]
+
+folds <- cut(seq(1, nrow(spam_data)), breaks=2, labels=FALSE)
+result_spam = vector("numeric", 2)
+for (i in 1:2) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, ]
+  training_data = spam_data[-testIndex, ]
+  
+  mod_spam = Mclust(training_data, G=2)
+  em_pred = predict.Mclust(mod_spam, test_data)
+  print(table(mod_spam$classification))
+  print(table(em_pred$classification))
+  result_spam[i] = mean(em_pred$classification != mod_spam$classification)
+}
+result_pred[3] = mean(result_spam)
+
+result_accuracy = 100- result_pred *100
+
+barplot(result_accuracy, main = "Accuracy of EM Model in each data sets", ylim = c(0, 100), 
+        xlab = "Data sets", ylab = "Percentages", col = rainbow(7), xlim = c(0,4),
+        names.arg = c("Wine Quality", "Magic", "Spam"))
+legend("topright", c("Wine Quality", "Magic", "Spam"), cex=0.7, bty = "n", fill = rainbow(7))
+```
+
+To calculate the accuracy of how well each data set is clustered, I have first built a model based on the half of dataset as training set and applied the other half of data set as test set and predicted how well test set fall into cluster based on model built with training set. Below shows code for wine quality dataset and followed by result.
+```{r eval=FALSE}
+#Clustering
+require(mclust)
+
+folds <- cut(seq(1, nrow(wine_data)), breaks=2, labels=FALSE)
+result_wine = vector("numeric", 2)
+for (i in 1:2) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = wine_data[testIndex, ]
+  training_data = wine_data[-testIndex, ]
+  
+  mod = Mclust(training_data, G= 7)
+  em_pred = predict.Mclust(mod, test_data)
+  print(table(mod$classification))
+  print(table(em_pred$classification))
+  result_wine[i] = mean(em_pred$classification != mod$classification)
+}
+```
+
+```{r, echo=FALSE}
+barplot(result_accuracy, main = "Accuracy of EM Model in each data sets", ylim = c(0, 100), 
+        xlab = "Data sets", ylab = "Percentages", col = rainbow(7), xlim = c(0,4),
+        names.arg = c("Wine Quality", "Magic", "Spam"))
+legend("topright", c("Wine Quality", "Magic", "Spam"), cex=0.7, bty = "n", fill = rainbow(7))
+```
+\begin{center}
+Figure 5.Result of Expectation-Maximization(EM)
+\end{center}
+
+
+### K-Means
+```{r, include=FALSE}
+#Kmeans
+wine_data = read.csv("winequality-white.csv", header = FALSE, sep = ";")
+wine_data = wine_data[,c(1:11)]
+
+# Normalizing function
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+require(clue)
+set.seed(777)
+wine_data = as.data.frame(lapply(wine_data[,c(1:11)], normalize))
+
+folds <- cut(seq(1, nrow(wine_data)), breaks=2, labels=FALSE)
+result_wine = vector("numeric", 2)
+for (i in 1:2) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = wine_data[testIndex, ]
+  training_data = wine_data[-testIndex, ]
+  
+  km_mod = kmeans(training_data, 7, iter.max=10000, nstart = 20)
+  km_pred = cl_predict(km_mod, test_data, type = "class_ids")  
+  print(table(km_mod$cluster))
+  print(table(km_pred))
+  result_wine[i] = mean(km_pred != km_mod$cluster)
+}
+
+
+#Magic data
+magic_data = read.csv("magicNormalized.txt", header = TRUE, sep = ",")
+magic_cls = magic_data[, c(11)]
+magic_data = magic_data[,c(1:10)]
+
+folds <- cut(seq(1, nrow(magic_data)), breaks=2, labels=FALSE)
+result_magic = vector("numeric", 2)
+for (i in 1:2) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = magic_data[testIndex, ]
+  training_data = magic_data[-testIndex, ]
+  
+  km_mod = kmeans(training_data, 2)
+  km_pred = cl_predict(km_mod, test_data, type = "class_ids")  
+  print(table(km_mod$cluster))
+  print(table(km_pred))
+  result_magic[i] = mean(km_pred != km_mod$cluster)
+}
+
+
+#Spam data
+spam_data = read.csv("spamNormalized.txt", header = TRUE, sep = ",",fileEncoding = "UTF-8")
+spam_cls = spam_data[,c(58)]
+spam_data = spam_data[,c(1:57)]
+
+folds <- cut(seq(1, nrow(spam_data)), breaks=2, labels=FALSE)
+result_spam = vector("numeric", 2)
+for (i in 1:2) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, ]
+  test_data = test_data[1:2300, ]
+  training_data = spam_data[-testIndex, ]
+  training_data = training_data[1:2300, ]
+  
+  km_mod = kmeans(training_data, 2)
+  km_pred = cl_predict(km_mod, test_data, type = "class_ids")  
+  print(table(km_mod$cluster))
+  print(table(km_pred))
+  result_spam[i] = mean(km_pred != km_mod$cluster)
+}
+
+result_error = vector("numeric", 3)
+result_error[1] = mean(result_wine) * 100
+result_error[2] = mean(result_magic) * 100
+result_error[3] = mean(result_spam) * 100
+result_accuracy = 100-result_error
+
+
+barplot(result_accuracy, main = "Accuracy of Kmeans in each data sets", ylim = c(0, 100), 
+        xlab = "Data sets", ylab = "Percentages", col = rainbow(7), xlim = c(0,4),
+        names.arg = c("Wine Quality", "Magic", "Spam"))
+legend("topright", c("Wine Quality", "Magic", "Spam"), cex=0.7, bty = "n", fill = rainbow(7))
+
+
+barplot(result_accuracy, main = "Accuracy of Kmeans in each data sets", xlab = "Data sets", ylab = "Percentages", 
+names.arg = c("Wine_Quality", "Magic", "Spam"),
+border = "blue", density = c(10, 50, 90))
+
+
+```
+K-Means is a hard clustering algorithm that takes _k_, number of cluster, and assgins all of the datapoints within those cluster specified by user. First step for K-means is to randomly choose cluster center _c_ then calculate the distance between each data points to the cluster centers _c_. After that, it assigns data points to the cluster whose distance is shortest of all cluster centers.
+These processes will be iteratively repeated with new random cluster centers chosen from datapoint in each cluster until convergence, convergence is when all data points stop shifting clusters(reassignment).
+
+```{r, eval=FALSE}
+folds <- cut(seq(1, nrow(spam_data)), breaks=2, labels=FALSE)
+result_spam = vector("numeric", 2)
+for (i in 1:2) {
+  testIndex <- which(folds==i, arr.ind=TRUE)
+  test_data = spam_data[testIndex, ]
+  test_data = test_data[1:2300, ]
+  training_data = spam_data[-testIndex, ]
+  training_data = training_data[1:2300, ]
+  
+  km_mod = kmeans(training_data, 2)
+  km_pred = cl_predict(km_mod, test_data, type = "class_ids")  
+  result_spam[i] = mean(km_pred != km_mod$cluster)
+}
+```
+
+```{r, echo=FALSE}
+barplot(result_accuracy, main = "Accuracy of Kmeans in each data sets", ylim = c(0, 100), 
+        xlab = "Data sets", ylab = "Percentages", col = rainbow(7), xlim = c(0,4),
+        names.arg = c("Wine Quality", "Magic", "Spam"))
+legend("topleft", c("Wine Quality", "Magic", "Spam"), cex=0.7, bty = "n", fill = rainbow(7))
+```
+\begin{center}
+Figure 6. Result of K-means
+\end{center}
+
+
+# Implication
+\begin{center}
+```{r, echo=FALSE, out.height="250px", out.width="600px"}
+knitr:: include_graphics("result_all.png")
+```
+
+Figure 7. Results of each algorithm on different set of data
+\end{center}
+
+I have applied two clustering and two classification algorithms to 'Wine Quality', 'MagicGammaTelescope' and  'Spambase' data sets. Implying from results, as we assumed, accuracy in each datasets varies. For 'Wine Quality', accuracy was highest in Decision Tree whereas lowest in all other algorithms. 	'MagicGammaTelescope' and 'Spambase' datasets have fairly high accuracy in classification algorithms but fairly low in clustering except that 'Spambase' had high accuracy in Kmeans. For EM, overall performances were low compare to other algorithms such that shape of each dataset may have been different from multivariate gaussian distribution which EM use to cluster.  
+
+
+# Conclusion
+The goal of our research was to compare the performances of each top data mining algorithm on different datasets. We can conclude that characteristics of datasets can influence the accuracy and it is crucial to understand domains of data and preprocess in data cleaning stage. There are no specific algorithm assigned to datasets as there are many possible ways to measure high accuracy in data mining field.
+
+\newpage
+# Reference
+* [UCI Machine Learning Repository](http://archive.ics.uci.edu/ml) 
+
+* [Top 10 algorithms in data mining](http://www.cs.uvm.edu/~icdm/algorithms/10Algorithms-08.pdf)
